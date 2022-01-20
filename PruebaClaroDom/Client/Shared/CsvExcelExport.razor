@@ -1,0 +1,54 @@
+﻿@typeparam Titem
+@inject IJSRuntime js
+
+<button @onclick="CSVExport" class="btn btn-secondary">Exportar a CSV</button>
+<button @onclick="ExcelExport" class="btn btn-primary">Exportar a Excel</button>
+
+@code {
+    [Parameter] public List<Titem>
+    List { get; set; }
+    [Parameter] public string FileName { get; set; }
+    [Parameter] public System.Drawing.Color HeaderBackGroundColor { get; set; } = System.Drawing.Color.DarkRed;
+
+    private async void CSVExport()
+    {
+
+    using (var memoryStream = new MemoryStream())
+    {
+    using (var writer = new StreamWriter(memoryStream))
+    {
+    using (var csv = new CsvWriter(writer, CultureInfo.InvariantCulture))
+    {
+    csv.WriteRecords(List);
+    }
+
+    var arr = memoryStream.ToArray();
+    await js.SaveAs($"{FileName}.csv", arr);
+    }
+    }
+    }
+
+    private async void ExcelExport()
+    {
+    using (var package = new ExcelPackage())
+    {
+    var worksheet = package.Workbook.Worksheets.Add($"{FileName}");
+
+    var tableBody = worksheet.Cells["A1:A1"].LoadFromCollection(List, true);
+
+
+    var header = worksheet.Cells["A1:D1"];
+    worksheet.DefaultColWidth = 25;
+    tableBody.Style.HorizontalAlignment = ExcelHorizontalAlignment.Left;
+    tableBody.Style.Fill.PatternType = ExcelFillStyle.Solid;
+    tableBody.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.WhiteSmoke);
+    tableBody.Style.Border.BorderAround(ExcelBorderStyle.Medium);
+    header.Style.Font.Bold = true;
+    header.Style.Font.Color.SetColor(System.Drawing.Color.White);
+    header.Style.Fill.PatternType = ExcelFillStyle.Solid;
+    header.Style.Fill.BackgroundColor.SetColor(HeaderBackGroundColor);
+
+    await js.SaveAs($"{FileName}.xlsx", package.GetAsByteArray());
+    }
+    }
+    }

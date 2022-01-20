@@ -1,0 +1,133 @@
+﻿@page "/products"
+@page "/productos"
+@inject IShowMessages showMessages
+@inject NavigationManager navigationManager
+@inject IHttpClientRepository Http
+@inject IJSRuntime js
+
+<h1>Listado de Productos</h1>
+<br />
+<hr />
+<br />
+<a href="/add-product" class="btn btn-secondary">Agregar Producto</a>
+<EditForm Model="this">
+    <div class="row">
+        <div class="col-md-3">
+            <label class="sr-only" for="filter-name"><b>Busqueda:</b></label>
+            <input type="text" class="form-control mb-2 mr-sm-2" @bind="nameFilter" placeholder="Busqueda..." />
+        </div>
+        <div class="col-md-3">
+            <button type="button" class="btn btn-primary mr-sm-2 mb-2" @onclick="Filter">Buscar</button>
+            <button type="button" class="btn btn-danger  mb-2" @onclick="Clear">Limpiar</button>
+        </div>
+        <div class="col-md-3">
+        </div>
+        <div class="col-md-3">
+        </div>
+    </div>
+</EditForm>
+<br />
+<hr />
+<br />
+<br />
+
+<CsvExcelExport FileName="Listado de Productos" List="Products"></CsvExcelExport>
+<GenericListing List="Products">
+    <ThereAreCompleteRecords>
+        <table class="table table-hover text-center" style="overflow-x:auto;">
+            <thead class="table-active">
+                <tr>
+                    <th>CODIGO</th>
+                    <th>NOMBRE</th>
+                    <th>DESCRIPCION</th>
+                    <th>FECHA EXPIRACION</th>
+                    <th>PRECIO</th>
+                    <th>COLOR</th>
+                    <th></th>
+                    <th>ACCIONES</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Products)
+                {
+                    <tr>
+                        <td>@item.Code</td>
+                        <td>@item.Name</td>
+                        <td>@item.Description</td>
+                        <td>@item.ExpiredDate</td>
+                        <td>@item.Prices.FirstOrDefault(x => x.IsDefaultProduct == true).Price</td>
+                        <td>@item.Prices.FirstOrDefault(x => x.IsDefaultProduct == true).Color</td>
+                        <td><a href="/edit-product/@item.Id" class="btn btn-warning">Editar</a></td>
+                        <td><a class="btn btn-danger">Eliminar</a></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </ThereAreCompleteRecords>
+</GenericListing>
+
+@code {
+
+    public List<Products> Products = new List<Products>();
+    private string nameFilter = string.Empty;
+    private int actualPage = 1;
+    private int totalPages;
+
+    private async Task Filter()
+    {
+        actualPage = 1;
+        await Load();
+    }
+
+    private async Task Clear()
+    {
+        nameFilter = string.Empty;
+        actualPage = 1;
+
+        await Load();
+    }
+
+    private async Task Load(int page = 1)
+    {
+        var httpResponse = await Http.Get<List<Products>>($"api/Products/GetAll?page={page}&filter={nameFilter}");
+
+        if (httpResponse.Error)
+        {
+            if (httpResponse.HttpResponseMessage.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                navigationManager.NavigateTo("/");
+            }
+            else
+            {
+                await showMessages.ShowErrorMessage(await httpResponse.GetBody());
+            }
+        }
+        else
+        {
+            Products = httpResponse.Response;
+        }
+    }
+
+    protected async override Task OnInitializedAsync()
+    {
+        await Load();
+    }
+
+    async Task DeleteProduct(int id)
+    {
+
+        if (await js.Confirm("Confirmacion de operacion", "Desear Eliminar este Producto?", TypeMessageSweetAlert.question))
+        {
+            var responseHttp = await Http.Delete("api/products/Delete/", id);
+            if (responseHttp.Error)
+            {
+                await showMessages.ShowErrorMessage(await responseHttp.GetBody());
+            }
+            else
+            {
+                navigationManager.NavigateTo("products");
+            }
+        }
+    }
+}
+

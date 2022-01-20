@@ -1,0 +1,103 @@
+﻿@page "/create-product/"
+@inject IShowMessages showMessages
+@inject NavigationManager navigationManager
+@inject IHttpClientRepository Http
+@inject IJSRuntime js
+
+<h1>Crear Producto</h1>
+<br />
+<br />
+<br />
+
+<EditForm Model="@Product">
+    <div class="row">
+        <div class="col-md-3">
+        </div>
+        <div class="col-md-6">
+            <label><b>Codigo:</b></label>
+            <label>@Product.Code</label><br />
+            <div class="form-group">
+                <label><b>Nombre:</b></label>
+                <div>
+                    <InputText required class="form-control" @bind-Value="@Product.Name" />
+                </div>
+            </div>
+            <div class="form-group">
+                <label><b>Descripcion:</b></label>
+                <div>
+                    <InputTextArea required class="form-control" @bind-Value="@Product.Description" />
+                </div>
+            </div>
+            <div class="form-group">
+                <label><b>Fecha Expiracion:</b></label>
+                <div>
+                    <InputDate required class="form-control" @bind-Value="@Product.ExpiredDate" />
+                </div>
+            </div>
+            <div class="form-group">
+                <label><b>Precios:</b></label>
+                <div>
+
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+        </div>
+    </div>
+    <br />
+    <div class="row">
+        <div class="col-md-3">
+        </div>
+        <div class="col-md-6">
+            <center>
+                <button type="submit" class="btn btn-primary" @onclick="CreateProduct">
+                    Guardar
+                </button>
+            </center>
+        </div>
+        <div class="col-md-3">
+        </div>
+    </div>
+    <br />
+    <br />
+    <br />
+</EditForm>
+
+@code {
+    Products Product = new Products();
+
+    protected async override Task OnInitializedAsync()
+    {
+        this.OnInitializedAsync();
+    }
+
+    async Task CreateProduct()
+    {
+        if (await js.Confirm("Confirmacion de operacion", "Desea crear este producto?", TypeMessageSweetAlert.question))
+        {
+            var responseHttp = await Http.Post("api/products/", Product);
+            if (responseHttp.Error)
+            {
+                await showMessages.ShowErrorMessage(await responseHttp.GetBody());
+            }
+            else
+            {
+                navigationManager.NavigateTo("products");
+            }
+        }
+        else
+        {
+
+        }
+    }
+
+    async Task SaveProductPrice()
+    {
+        var responseHttp = await Http.Post("api/products/Create/", product);
+        if (responseHttp.Error)
+        {
+            await showMessages.ShowErrorMessage(await responseHttp.GetBody());
+        }
+    }
+}
+
